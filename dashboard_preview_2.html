@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>日報ダッシュボード プレビュー</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Hiragino Sans','Yu Gothic UI',sans-serif;font-size:14px;background:#f5f5f3;color:#1a1a1a}
+.header{background:#fff;border-bottom:1px solid #e0e0dd;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.header h1{font-size:16px;font-weight:600}
+.header-right{display:flex;align-items:center;gap:10px}
+.last-updated{font-size:11px;color:#888}
+.btn-refresh{padding:6px 14px;background:#1a1a1a;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer}
+.preview-badge{font-size:11px;background:#FFF3CD;color:#856404;padding:4px 10px;border-radius:20px;border:1px solid #FFE69C}
+.tabs{background:#fff;border-bottom:1px solid #e0e0dd;padding:0 20px;display:flex;overflow-x:auto}
+.tab{padding:10px 16px;font-size:13px;cursor:pointer;border:none;background:none;color:#888;border-bottom:2px solid transparent;white-space:nowrap}
+.tab.active{color:#1a1a1a;border-bottom-color:#1a1a1a;font-weight:500}
+.container{max-width:960px;margin:0 auto;padding:20px}
+.sec{display:none}.sec.active{display:block}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.card{background:#fff;border:1px solid #e8e8e5;border-radius:10px;padding:14px 16px;margin-bottom:12px}
+.met{background:#f5f5f3;border-radius:8px;padding:12px;text-align:center}
+.ml{font-size:11px;color:#888;margin-bottom:3px}
+.mv{font-size:22px;font-weight:600}
+.ms{font-size:11px;color:#aaa;margin-top:1px}
+.ct{font-size:13px;font-weight:600;margin-bottom:10px}
+.row{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+select{padding:6px 10px;border:1px solid #ddd;border-radius:6px;background:#fff;font-size:12px;color:#1a1a1a}
+.ir{padding:8px 0;border-bottom:1px solid #f0f0ee;font-size:12px;line-height:1.6}
+.ir:last-child{border-bottom:none}
+.im{font-size:10px;color:#aaa;margin-bottom:2px}
+.badge{font-size:10px;padding:2px 8px;border-radius:20px;background:#E1F5EE;color:#0F6E56;font-weight:500}
+.badge.m{background:#FAEEDA;color:#854F0B}
+.badge.h{background:#FAECE7;color:#993C1D}
+.badge.bl{background:#E6F1FB;color:#185FA5}
+.wh{font-size:11px;font-weight:600;color:#888;margin:10px 0 3px;padding-top:8px;border-top:1px dashed #eee}
+.mb-row{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px}
+.mb{padding:5px 13px;font-size:12px;border:1px solid #ddd;border-radius:20px;background:#fff;cursor:pointer}
+.mb:hover,.mb.act{background:#f5f5f3;border-color:#bbb;font-weight:500}
+.fb-box{border:1px solid #e8e8e5;border-radius:8px;padding:14px;font-size:13px;line-height:1.9;background:#f9f9f7;white-space:pre-wrap;margin-top:10px}
+.btn{padding:7px 16px;border:1px solid #ddd;border-radius:6px;background:#fff;font-size:12px;cursor:pointer}
+.btn-p{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
+.kw-wrap{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.kw{font-size:12px;padding:3px 10px;border-radius:20px;background:#f5f5f3;border:1px solid #e0e0dd}
+.q4-item{padding:10px 0;border-bottom:1px solid #f0f0ee;font-size:12px}
+.q4-item:last-child{border-bottom:none}
+.reply-box{background:#f0f5ff;border-radius:5px;padding:6px 10px;margin-top:4px;font-size:11px;color:#555}
+.alert-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:4px}
+.alert-card{border-radius:8px;padding:10px 12px;font-size:12px;border:1px solid}
+.alert-card.ok{background:#F0FBF5;border-color:#A8DFC0;color:#1a5c36}
+.alert-card.warn{background:#FFFBEB;border-color:#FCD34D;color:#78400a}
+.alert-card.danger{background:#FEF2F2;border-color:#FCA5A5;color:#7f1d1d}
+.alert-name{font-weight:600;margin-bottom:2px;font-size:13px}
+.alert-sub{font-size:10px;opacity:.75;margin-top:1px}
+.person-issue-block{margin-bottom:8px;border:1px solid #e8e8e5;border-radius:8px;overflow:hidden}
+.person-issue-head{padding:9px 12px;background:#f9f9f7;font-size:12px;font-weight:600;display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none}
+.person-issue-head:hover{background:#f5f5f3}
+.person-issue-body{padding:0 12px;display:none}
+.person-issue-body.open{display:block}
+@media(max-width:640px){.g2{grid-template-columns:1fr}.g3{grid-template-columns:repeat(2,1fr)}.container{padding:12px}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📋 日報ダッシュボード</h1>
+  <div class="header-right">
+    <span class="preview-badge">⚠ サンプルデータ</span>
+    <span class="last-updated">プレビュー版</span>
+    <button class="btn-refresh">↻ 更新</button>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="sw('dash',this)">📊 全体把握</button>
+  <button class="tab" onclick="sw('detail',this)">👤 個人詳細</button>
+  <button class="tab" onclick="sw('fb',this)">📝 FBシート生成</button>
+</div>
+
+<div class="container">
+
+<!-- 全体把握 -->
+<div id="sec-dash" class="sec active">
+  <div class="row">
+    <label style="font-size:12px;color:#888">表示期間：</label>
+    <select id="psel" onchange="renderDash()">
+      <option value="yesterday">昨日（遅延提出含む）</option>
+      <option value="3days">直近3日</option>
+      <option value="week" selected>直近1週間</option>
+      <option value="month">直近1ヶ月</option>
+      <option value="all">全期間</option>
+    </select>
+    <span id="period-label" style="font-size:11px;color:#aaa"></span>
+  </div>
+
+  <!-- 提出状況（最上部） -->
+  <div class="card">
+    <p class="ct">📬 提出状況チェック <span style="font-size:11px;font-weight:400;color:#aaa">― 営業日ベース（土日除く）</span></p>
+    <div class="alert-grid" id="submit-status"></div>
+  </div>
+
+  <!-- 個人別 課題 -->
+  <div class="card">
+    <p class="ct">⚠ 直近の課題・悩み（Q2）― 個人別</p>
+    <div id="issues-by-person"></div>
+  </div>
+
+  <!-- 相談・要望 -->
+  <div class="card">
+    <p class="ct">💬 相談・要望（Q4）</p>
+    <div id="q4list"></div>
+  </div>
+</div>
+
+<!-- 個人詳細 -->
+<div id="sec-detail" class="sec">
+  <div class="mb-row" id="mbtns"></div>
+  <div id="detail-content"></div>
+</div>
+
+<!-- FBシート生成 -->
+<div id="sec-fb" class="sec">
+  <div class="card">
+    <div class="row">
+      <label style="font-size:12px;color:#888">対象：</label>
+      <select id="fb-m"></select>
+      <label style="font-size:12px;color:#888">期間：</label>
+      <select id="fb-p">
+        <option value="month">直近1ヶ月</option>
+        <option value="all">全期間</option>
+      </select>
+      <button class="btn btn-p" onclick="genFB()">FBシート生成</button>
+    </div>
+    <div id="fb-result"></div>
+  </div>
+</div>
+
+</div>
+
+<script>
+// ── サンプルデータ ────────────────────────────────────────────
+const TODAY=new Date();
+function daysAgo(n,h=18){const d=new Date(TODAY);d.setDate(d.getDate()-n);d.setHours(h,0,0,0);return d;}
+function fmt(d){return d.getFullYear()+'/'+(d.getMonth()+1).toString().padStart(2,'0')+'/'+d.getDate().toString().padStart(2,'0');}
+
+const D=[
+  {ts:daysAgo(6).getTime(),   ds:fmt(daysAgo(6)),   id:'田中 花子', win:'問診でストーリーを意識できた',           issue:'予約時に患者様を待たせてしまった',             action:'フロア全体の動きを把握する',       other:'問診の組み立て方を教わりたい', reply:''},
+  {ts:daysAgo(6).getTime(),   ds:fmt(daysAgo(6)),   id:'佐藤 太郎', win:'ロコモチェックの流れを把握できた',       issue:'担当PTの評価意図を考えられなかった',           action:'先輩に確認しながら取り組む',       other:'', reply:''},
+  {ts:daysAgo(6).getTime(),   ds:fmt(daysAgo(6)),   id:'山田 次郎', win:'フロア取り込み手順を覚えた',             issue:'本人確認を忘れてしまった',                     action:'必ず本人確認を行う',               other:'なし', reply:''},
+  {ts:daysAgo(5).getTime(),   ds:fmt(daysAgo(5)),   id:'田中 花子', win:'フロア業務を積極的に行えた',             issue:'1つに集中しすぎて周りが見えなかった',           action:'周りを見て優先順位をつける',       other:'', reply:''},
+  {ts:daysAgo(5).getTime(),   ds:fmt(daysAgo(5)),   id:'鈴木 美咲', win:'患者のペースに合わせた声かけができた', issue:'転倒リスクの判断が難しい',                     action:'リスク判断の基準を先輩に確認する', other:'配属先の決定時期を教えてほしい', reply:''},
+  {ts:daysAgo(4).getTime(),   ds:fmt(daysAgo(4)),   id:'佐藤 太郎', win:'退院前評価の視点が分かってきた',         issue:'転倒リスクの判断にまだ不安がある',             action:'リスク管理の知識を深める',         other:'なし', reply:''},
+  {ts:daysAgo(4).getTime(),   ds:fmt(daysAgo(4)),   id:'中村 健',   win:'テーピングで患者から上手くなったと言われた', issue:'応用パターンが覚えられない',              action:'パターンを図にまとめる',           other:'自賠と労災の確認方法を教えてほしい', reply:'工藤美浜で伝達済み（5/11）'},
+  {ts:daysAgo(3).getTime(),   ds:fmt(daysAgo(3)),   id:'田中 花子', win:'一人でほぼ完結した評価ができた',         issue:'カルテ記載のスピードがまだ遅い',               action:'カルテ記載を意識的に速める',       other:'なし', reply:''},
+  {ts:daysAgo(3).getTime(),   ds:fmt(daysAgo(3)),   id:'山田 次郎', win:'患者さんの名前を覚えてきた',             issue:'全体の流れがまだ把握できていない',             action:'業務の優先順位を整理する',         other:'', reply:''},
+  // 昨日・翌朝提出ケース
+  {ts:daysAgo(1,21).getTime(),ds:fmt(daysAgo(1)),   id:'田中 花子', win:'フロア業務が自然にできるようになった', issue:'個人情報管理で注意を受けた',                   action:'PC画面が見えないよう配慮する',     other:'なし', reply:''},
+  {ts:daysAgo(1,23).getTime(),ds:fmt(daysAgo(1)),   id:'鈴木 美咲', win:'かみ砕いた表現で説明できた',           issue:'声が小さいと指摘された',                       action:'意識して声量を上げる',             other:'なし', reply:''},
+  {ts:daysAgo(0, 7).getTime(),ds:fmt(daysAgo(1)),   id:'佐藤 太郎', win:'事前準備とサポートがスムーズにできた', issue:'日程調整で連絡不足があった（翌朝提出）',       action:'細かいことも連絡を忘れない',       other:'なし', reply:''},
+  // 中村・山田は未提出（アラート確認用）
+];
+
+// ── 期間フィルター ────────────────────────────────────────────
+function getFilterRange(p){
+  const now=new Date();
+  const dow=now.getDay();
+  const startOfToday=new Date(now); startOfToday.setHours(0,0,0,0);
+  if(p==='yesterday'){
+    const from=new Date(startOfToday);
+    from.setDate(from.getDate()-1);
+    if(dow===1) from.setDate(from.getDate()-2); // 月曜→土曜から
+    from.setHours(0,0,0,0);
+    const noonToday=new Date(startOfToday); noonToday.setHours(12,0,0,0);
+    return{from:from.getTime(), to:Math.max(Date.now(), noonToday.getTime()), label:`${fmt(from)} 〜 本日12時まで`};
+  }
+  if(p==='3days'){
+    const from=new Date(startOfToday); from.setDate(from.getDate()-2);
+    return{from:from.getTime(), to:Date.now(), label:'直近3日間'};
+  }
+  if(p==='week'){
+    const from=new Date(startOfToday); from.setDate(from.getDate()-6);
+    return{from:from.getTime(), to:Date.now(), label:'直近7日間'};
+  }
+  if(p==='month'){
+    const from=new Date(startOfToday); from.setDate(from.getDate()-29);
+    return{from:from.getTime(), to:Date.now(), label:'直近30日間'};
+  }
+  return{from:0, to:Date.now(), label:'全期間'};
+}
+
+function filterP(data,p){
+  if(p==='all') return data;
+  const {from,to}=getFilterRange(p);
+  return data.filter(r=>r.ts>=from&&r.ts<=to);
+}
+
+function getIDs(){return[...new Set(D.map(r=>r.id))].sort();}
+
+function calcBizDays(fromTs){
+  let bizDays=0;
+  const tmp=new Date(fromTs);
+  const now=Date.now();
+  while(tmp.getTime()<now-3600000){
+    tmp.setDate(tmp.getDate()+1);
+    const d=tmp.getDay();
+    if(d!==0&&d!==6) bizDays++;
+  }
+  return bizDays;
+}
+
+function sw(t,btn){
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.sec').forEach(s=>s.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('sec-'+t).classList.add('active');
+}
+
+// ── 全体把握 ──────────────────────────────────────────────────
+function renderDash(){
+  const p=document.getElementById('psel').value;
+  const range=p==='all'?{label:'全期間'}:getFilterRange(p);
+  document.getElementById('period-label').textContent=range.label||'';
+  const data=filterP(D,p);
+  const ids=getIDs();
+
+  // 提出状況カード（期間に関わらず全員分・常時表示）
+  document.getElementById('submit-status').innerHTML=ids.map(id=>{
+    const records=D.filter(r=>r.id===id);
+    if(!records.length) return`<div class="alert-card danger"><div class="alert-name">${id}</div><div class="alert-sub">記録なし</div></div>`;
+    const last=records[records.length-1];
+    const bizDays=calcBizDays(last.ts);
+    let cls,sub;
+    if(bizDays<=1){cls='ok';   sub='提出OK ✓';}
+    else if(bizDays===2){cls='warn';   sub=`2営業日未提出 ⚠`;}
+    else{cls='danger'; sub=`${bizDays}営業日未提出 🚨`;}
+    return`<div class="alert-card ${cls}">
+      <div class="alert-name">${id}</div>
+      <div class="alert-sub">最終提出: ${last.ds}</div>
+      <div class="alert-sub" style="margin-top:3px;font-weight:600">${sub}</div>
+    </div>`;
+  }).join('');
+
+  // 個人別 課題（Q2）アコーディオン
+  document.getElementById('issues-by-person').innerHTML=ids.map(id=>{
+    const issues=data.filter(r=>r.id===id&&r.issue);
+    const noIssue=`<div class="person-issue-block">
+      <div class="person-issue-head">
+        <span>${id}</span><span style="font-size:10px;color:#bbb">期間内の課題記録なし</span>
+      </div></div>`;
+    if(!issues.length) return noIssue;
+    return`<div class="person-issue-block">
+      <div class="person-issue-head" onclick="toggleIssue(this)">
+        <span>${id}</span>
+        <span><span class="badge bl">${issues.length}件</span>&nbsp;<span style="font-size:11px;color:#aaa">▼</span></span>
+      </div>
+      <div class="person-issue-body">
+        ${issues.slice().reverse().map(r=>`<div class="ir">
+          <div class="im">${r.ds}</div>
+          <div style="margin-bottom:2px">⚠ ${r.issue}</div>
+          ${r.action?`<div style="font-size:11px;color:#aaa">→ 明日：${r.action}</div>`:''}
+        </div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+
+  // Q4 相談・要望（全期間表示・返信状況で色分け）
+  const q4=D.filter(r=>r.other&&r.other!=='なし'&&r.other!=='').slice().reverse();
+  document.getElementById('q4list').innerHTML=q4.length?q4.map(r=>`
+    <div class="q4-item">
+      <div class="im">${r.ds}　<strong>${r.id}</strong>　${r.reply?'<span class="badge">返信済 ✓</span>':'<span class="badge h">未返信</span>'}</div>
+      <div>${r.other}</div>
+      ${r.reply?`<div class="reply-box">↳ ${r.reply}</div>`:''}
+    </div>`).join(''):'<p style="font-size:12px;color:#bbb">相談・要望なし</p>';
+}
+
+function toggleIssue(head){
+  const body=head.nextElementSibling;
+  if(!body)return;
+  body.classList.toggle('open');
+  const arrow=head.querySelector('span:last-child span:last-child');
+  if(arrow) arrow.textContent=body.classList.contains('open')?'▲':'▼';
+}
+
+// ── 個人詳細 ──────────────────────────────────────────────────
+function initUI(){
+  const ids=getIDs();
+  document.getElementById('mbtns').innerHTML=ids.map((id,i)=>
+    `<button class="mb${i===0?' act':''}" onclick="selMember('${id}',this)">${id}</button>`
+  ).join('');
+  document.getElementById('fb-m').innerHTML=ids.map(id=>`<option value="${id}">${id}</option>`).join('');
+  renderDetail(ids[0]);
+}
+
+function selMember(id,btn){
+  document.querySelectorAll('.mb').forEach(b=>b.classList.remove('act'));
+  btn.classList.add('act');
+  renderDetail(id);
+}
+
+function wk(ts){
+  const d=new Date(ts),day=d.getDay();
+  d.setDate(d.getDate()-day+(day===0?-6:1));
+  return(d.getMonth()+1)+'/'+d.getDate()+'週';
+}
+
+function renderDetail(id){
+  const data=D.filter(r=>r.id===id);
+  const ic=data.filter(r=>r.issue).length;
+  const last=data.length?data[data.length-1]:null;
+  const bizDays=last?calcBizDays(last.ts):99;
+  const statusCls=bizDays<=1?'#0F6E56':bizDays===2?'#854F0B':'#993C1D';
+  const statusTxt=bizDays<=1?'提出OK ✓':bizDays===2?'2営業日未提出 ⚠':`${bizDays}営業日未提出 🚨`;
+
+  const kws=['問診','申し送り','カルテ','声','時間','フロア','評価','知識','リスク','ロコモ','予約','アセスメント','説明','動作指導','病態'];
+  const kc=kws.map(k=>({k,n:data.filter(r=>r.issue.includes(k)).length})).filter(x=>x.n>0).sort((a,b)=>b.n-a.n).slice(0,6);
+  const weeks=[...new Set(data.map(r=>wk(r.ts)))].sort();
+
+  let html=`<div class="g2" style="margin-bottom:12px">
+    <div class="met"><div class="ml">記録日数</div><div class="mv">${data.length}</div><div class="ms">最終: ${last?last.ds:'—'}</div></div>
+    <div class="met"><div class="ml">提出状況</div><div class="mv" style="font-size:15px;color:${statusCls}">${statusTxt}</div></div>
+  </div>`;
+
+  if(kc.length){
+    html+=`<div class="card"><p class="ct">繰り返し出ている課題テーマ</p>
+      <div class="kw-wrap">${kc.map(x=>`<span class="kw">${x.k} <strong>${x.n}回</strong></span>`).join('')}</div></div>`;
+  }
+
+  html+=`<div class="card"><p class="ct">週ごとの振り返り</p>`;
+  weeks.forEach(w=>{
+    const wd=data.filter(r=>wk(r.ts)===w);
+    html+=`<div class="wh">${w}（${wd.length}件）</div>`;
+    wd.forEach(r=>{
+      html+=`<div class="ir">
+        <div class="im">${r.ds}</div>
+        <div style="margin-bottom:2px">✅ ${r.win||'—'}</div>
+        <div style="color:#888">⚠ ${r.issue||'記載なし'}</div>
+        ${r.action?`<div style="font-size:11px;color:#aaa;margin-top:2px">→ 明日：${r.action}</div>`:''}
+      </div>`;
+    });
+  });
+  html+=`</div>`;
+  document.getElementById('detail-content').innerHTML=html;
+}
+
+// ── FBシート生成 ──────────────────────────────────────────────
+function genFB(){
+  const id=document.getElementById('fb-m').value;
+  const pval=document.getElementById('fb-p').value;
+  const data=filterP(D.filter(r=>r.id===id),pval);
+  if(!data.length){document.getElementById('fb-result').innerHTML='<p style="color:#aaa;font-size:12px;margin-top:8px">該当データがありません</p>';return;}
+  let text=`【月次フィードバックシート】\n対象者：${id}\n対象期間：${data[0].ds} 〜 ${data[data.length-1].ds}\n記録日数：${data.length}日\n\n`;
+  text+=`① この期間の成長まとめ\n`;
+  data.filter(r=>r.win).slice(-5).forEach(r=>{text+=`・${r.ds}：${r.win}\n`;});
+  text+=`\n② 繰り返し出ている課題\n`;
+  const kws=['問診','カルテ','声','時間','フロア','評価','知識','リスク','アセスメント','説明','動作指導'];
+  const found=kws.filter(k=>data.filter(r=>r.issue.includes(k)).length>=2);
+  if(found.length){found.forEach(k=>{const ex=data.filter(r=>r.issue.includes(k))[0];text+=`・「${k}」に関する課題が複数回記録\n　例）${ex.issue}\n`;});}
+  else{data.filter(r=>r.issue).slice(-3).forEach(r=>{text+=`・${r.issue}\n`;});}
+  text+=`\n③ 来月取り組んでほしいこと\n`;
+  data.filter(r=>r.action).slice(-3).forEach(r=>{text+=`・${r.action}\n`;});
+  text+=`\n④ 一言メッセージ\n${data.length}日間の記録、お疲れさまでした。`;
+  if(found.length) text+=`\n「${found[0]}」の課題が続いています。一度先輩に具体的に相談してみましょう。`;
+  text+=`\n日々の振り返りを続けていることが着実な成長につながっています。引き続き一緒に成長していきましょう。`;
+  document.getElementById('fb-result').innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;margin-bottom:4px">
+      <span style="font-size:12px;font-weight:600">${id} へのフィードバックシート</span>
+      <button class="btn" onclick="navigator.clipboard.writeText(document.getElementById('fb-text').innerText).then(()=>alert('コピーしました'))" style="font-size:11px;padding:4px 10px">コピー</button>
+    </div>
+    <div class="fb-box" id="fb-text">${text}</div>`;
+}
+
+initUI();
+renderDash();
+</script>
+</body>
+</html>
