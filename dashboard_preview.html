@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>日報ダッシュボード プレビュー</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Hiragino Sans','Yu Gothic UI',sans-serif;font-size:14px;background:#f5f5f3;color:#1a1a1a}
+.header{background:#fff;border-bottom:1px solid #e0e0dd;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.header h1{font-size:16px;font-weight:600}
+.header-right{display:flex;align-items:center;gap:10px}
+.last-updated{font-size:11px;color:#888}
+.btn-refresh{padding:6px 14px;background:#1a1a1a;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer}
+.preview-badge{font-size:11px;background:#FFF3CD;color:#856404;padding:4px 10px;border-radius:20px;border:1px solid #FFE69C}
+.tabs{background:#fff;border-bottom:1px solid #e0e0dd;padding:0 20px;display:flex;overflow-x:auto}
+.tab{padding:10px 16px;font-size:13px;cursor:pointer;border:none;background:none;color:#888;border-bottom:2px solid transparent;white-space:nowrap}
+.tab.active{color:#1a1a1a;border-bottom-color:#1a1a1a;font-weight:500}
+.container{max-width:960px;margin:0 auto;padding:20px}
+.sec{display:none}.sec.active{display:block}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.card{background:#fff;border:1px solid #e8e8e5;border-radius:10px;padding:14px 16px;margin-bottom:12px}
+.ct{font-size:13px;font-weight:600;margin-bottom:10px}
+.row{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+select{padding:6px 10px;border:1px solid #ddd;border-radius:6px;background:#fff;font-size:12px;color:#1a1a1a}
+.ir{padding:8px 0;border-bottom:1px solid #f0f0ee;font-size:12px;line-height:1.6}
+.ir:last-child{border-bottom:none}
+.im{font-size:10px;color:#aaa;margin-bottom:2px}
+.badge{font-size:10px;padding:2px 8px;border-radius:20px;background:#E1F5EE;color:#0F6E56;font-weight:500}
+.badge.m{background:#FAEEDA;color:#854F0B}
+.badge.h{background:#FAECE7;color:#993C1D}
+.badge.bl{background:#E6F1FB;color:#185FA5}
+.badge.gy{background:#f0f0ee;color:#666}
+.wh{font-size:11px;font-weight:600;color:#888;margin:10px 0 3px;padding-top:8px;border-top:1px dashed #eee}
+.mb-row{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px}
+.mb{padding:5px 13px;font-size:12px;border:1px solid #ddd;border-radius:20px;background:#fff;cursor:pointer}
+.mb:hover,.mb.act{background:#f5f5f3;border-color:#bbb;font-weight:500}
+.btn{padding:7px 16px;border:1px solid #ddd;border-radius:6px;background:#fff;font-size:12px;cursor:pointer}
+.btn-p{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
+.btn-p:hover{opacity:.85}
+.kw-wrap{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.kw{font-size:12px;padding:3px 10px;border-radius:20px;background:#f5f5f3;border:1px solid #e0e0dd}
+.q4-item{padding:10px 0;border-bottom:1px solid #f0f0ee;font-size:12px}
+.q4-item:last-child{border-bottom:none}
+.reply-box{background:#f0f5ff;border-radius:5px;padding:6px 10px;margin-top:4px;font-size:11px;color:#555}
+.alert-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:4px}
+.alert-card{border-radius:8px;padding:10px 12px;font-size:12px;border:1px solid}
+.alert-card.ok{background:#F0FBF5;border-color:#A8DFC0;color:#1a5c36}
+.alert-card.warn{background:#FFFBEB;border-color:#FCD34D;color:#78400a}
+.alert-card.danger{background:#FEF2F2;border-color:#FCA5A5;color:#7f1d1d}
+.alert-name{font-weight:600;margin-bottom:2px;font-size:13px}
+.alert-sub{font-size:10px;opacity:.75;margin-top:1px}
+.person-issue-block{margin-bottom:8px;border:1px solid #e8e8e5;border-radius:8px;overflow:hidden}
+.person-issue-head{padding:9px 12px;background:#f9f9f7;font-size:12px;font-weight:600;display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none}
+.person-issue-head:hover{background:#f5f5f3}
+.person-issue-body{padding:0 12px;display:none}
+.person-issue-body.open{display:block}
+/* FBシート専用スタイル */
+.fb-section{margin-bottom:14px}
+.fb-section-title{font-size:12px;font-weight:700;color:#1a1a1a;margin-bottom:8px;padding:6px 10px;background:#f5f5f3;border-radius:6px;border-left:3px solid #1a1a1a}
+.fb-axis-row{display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-bottom:1px solid #f0f0ee;font-size:12px}
+.fb-axis-row:last-child{border-bottom:none}
+.fb-axis-name{width:140px;flex-shrink:0;font-weight:500;color:#444;font-size:11px;line-height:1.5}
+.fb-axis-content{flex:1;line-height:1.7}
+.fb-axis-ok{color:#0F6E56;font-size:11px}
+.fb-axis-ng{color:#993C1D;font-size:11px}
+.fb-axis-none{color:#aaa;font-size:11px}
+.fb-box{border:1px solid #e8e8e5;border-radius:8px;padding:16px;background:#f9f9f7;margin-top:10px}
+.fb-action-item{padding:6px 0;border-bottom:1px solid #f0f0ee;font-size:12px;display:flex;gap:8px;align-items:flex-start}
+.fb-action-item:last-child{border-bottom:none}
+.fb-action-num{width:20px;flex-shrink:0;font-weight:700;color:#1a1a1a}
+.fb-msg{background:#F0FBF5;border-radius:8px;padding:12px 14px;font-size:13px;line-height:1.8;color:#1a5c36;border:1px solid #A8DFC0;margin-top:4px}
+@media(max-width:640px){.g2{grid-template-columns:1fr}.container{padding:12px}.fb-axis-name{width:100px}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📋 日報ダッシュボード</h1>
+  <div class="header-right">
+    <span class="preview-badge">⚠ サンプルデータ</span>
+    <span class="last-updated">プレビュー版</span>
+    <button class="btn-refresh">↻ 更新</button>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="sw('dash',this)">📊 全体把握</button>
+  <button class="tab" onclick="sw('detail',this)">👤 個人詳細</button>
+  <button class="tab" onclick="sw('fb',this)">📝 FBシート生成</button>
+</div>
+
+<div class="container">
+
+<!-- 全体把握 -->
+<div id="sec-dash" class="sec active">
+  <div class="row">
+    <label style="font-size:12px;color:#888">表示期間：</label>
+    <select id="psel" onchange="renderDash()">
+      <option value="yesterday">昨日（遅延提出含む）</option>
+      <option value="3days">直近3日</option>
+      <option value="week" selected>直近1週間</option>
+      <option value="month">直近1ヶ月</option>
+      <option value="all">全期間</option>
+    </select>
+    <span id="period-label" style="font-size:11px;color:#aaa"></span>
+  </div>
+  <div class="card">
+    <p class="ct">📬 提出状況チェック <span style="font-size:11px;font-weight:400;color:#aaa">― 営業日ベース（土日除く）</span></p>
+    <div class="alert-grid" id="submit-status"></div>
+  </div>
+  <div class="card">
+    <p class="ct">⚠ 直近の課題・悩み（Q2）― 個人別</p>
+    <div id="issues-by-person"></div>
+  </div>
+  <div class="card">
+    <p class="ct">💬 相談・要望（Q4）</p>
+    <div id="q4list"></div>
+  </div>
+</div>
+
+<!-- 個人詳細 -->
+<div id="sec-detail" class="sec">
+  <div class="mb-row" id="mbtns"></div>
+  <div id="detail-content"></div>
+</div>
+
+<!-- FBシート生成 -->
+<div id="sec-fb" class="sec">
+  <div class="card">
+    <p class="ct">📝 FBシート生成 <span style="font-size:11px;font-weight:400;color:#888">― 1ヶ月研修の育成テーマに基づいた評価</span></p>
+    <div class="row">
+      <label style="font-size:12px;color:#888">対象：</label>
+      <select id="fb-m"></select>
+      <label style="font-size:12px;color:#888">期間：</label>
+      <select id="fb-p">
+        <option value="month">直近1ヶ月</option>
+        <option value="all">全期間</option>
+      </select>
+      <button class="btn btn-p" onclick="genFB()">FBシート生成</button>
+    </div>
+    <!-- 育成テーマの凡例 -->
+    <div style="background:#f9f9f7;border:1px solid #e8e8e5;border-radius:8px;padding:12px;margin-bottom:12px;font-size:11px;color:#666;line-height:1.9">
+      <strong style="color:#1a1a1a;font-size:12px">評価軸（1ヶ月研修・育成テーマより）</strong><br>
+      A. 問診の質　B. 評価・アセスメント・治療のつながり　C. リスク管理<br>
+      D. 報連相・確認行動　E. 接遇・言葉遣い・振る舞い<br>
+      F. 自己認識・フィードバック耐性　G. 患者視点への転換
+    </div>
+    <div id="fb-result"></div>
+  </div>
+</div>
+
+</div>
+
+<script>
+// ── サンプルデータ ────────────────────────────────
+const TODAY=new Date();
+function daysAgo(n,h=18){const d=new Date(TODAY);d.setDate(d.getDate()-n);d.setHours(h,0,0,0);return d;}
+function fmt(d){return d.getFullYear()+'/'+(d.getMonth()+1).toString().padStart(2,'0')+'/'+d.getDate().toString().padStart(2,'0');}
+
+const D=[
+  {ts:daysAgo(20).getTime(),ds:fmt(daysAgo(20)),id:'田中 花子',win:'問診でストーリーを意識して患者様の背景を聞き出せた',issue:'予約時に患者様を長く待たせてしまった。フロアとの連携が課題',action:'フロア全体の動きを把握して先を読んで行動する',other:'問診の組み立て方を教わりたい',reply:''},
+  {ts:daysAgo(20).getTime(),ds:fmt(daysAgo(20)),id:'佐藤 太郎',win:'ロコモチェックの流れを把握できた',issue:'担当PTの評価意図を考えられなかった。なぜその評価をするのか分からない',action:'先輩に確認しながら評価の意図を聞いて取り組む',other:'',reply:''},
+  {ts:daysAgo(20).getTime(),ds:fmt(daysAgo(20)),id:'山田 次郎',win:'フロア取り込み手順を覚えた',issue:'本人確認を忘れてしまった。焦って手順が抜けた',action:'必ず本人確認を行う。焦っても手順を省略しない',other:'なし',reply:''},
+  {ts:daysAgo(18).getTime(),ds:fmt(daysAgo(18)),id:'田中 花子',win:'フロア業務を積極的に行えた。周りを見て動けた',issue:'評価をするだけで終わり、アセスメントにつなげられなかった',action:'評価の目的を先輩に確認してから入る',other:'',reply:''},
+  {ts:daysAgo(18).getTime(),ds:fmt(daysAgo(18)),id:'鈴木 美咲',win:'患者様のペースに合わせた声かけができた',issue:'転倒リスクの判断が難しい。どの場面でも意識できていない',action:'リスク管理の確認を先輩に相談する',other:'配属先の決定時期を教えてほしい',reply:''},
+  {ts:daysAgo(15).getTime(),ds:fmt(daysAgo(15)),id:'佐藤 太郎',win:'退院前評価の視点が少し分かってきた',issue:'転倒リスクの判断にまだ不安がある。全場面で気を配れていない',action:'リスク管理を全場面で自動化できるよう意識する',other:'なし',reply:''},
+  {ts:daysAgo(15).getTime(),ds:fmt(daysAgo(15)),id:'中村 健',win:'テーピングで患者様から上手くなったと言われた',issue:'問診で何を聞けばよいか迷う。なぜ聞くのかが分からない',action:'問診の目的を整理して先輩に確認する',other:'自賠と労災の確認方法を教えてほしい',reply:'工藤美浜で伝達済み（5/11）'},
+  {ts:daysAgo(12).getTime(),ds:fmt(daysAgo(12)),id:'田中 花子',win:'一人でほぼ完結した評価ができた',issue:'カルテ記載でSとAのつながりが書けない。アセスメントが弱い',action:'先輩のカルテを参考にSとAのつながりを学ぶ',other:'なし',reply:''},
+  {ts:daysAgo(12).getTime(),ds:fmt(daysAgo(12)),id:'山田 次郎',win:'患者様の名前を覚えてコミュニケーションが取れた',issue:'全体の流れがまだ把握できていない。業務の優先順位が分からない',action:'業務の優先順位を先輩に確認して整理する',other:'',reply:''},
+  {ts:daysAgo(10).getTime(),ds:fmt(daysAgo(10)),id:'鈴木 美咲',win:'患者様に動作の目的を説明できた',issue:'指摘を受けた時に落ち込んで次の行動に移れなかった',action:'フィードバックは行動修正の情報と捉えて次に活かす',other:'なし',reply:''},
+  {ts:daysAgo(10).getTime(),ds:fmt(daysAgo(10)),id:'中村 健',win:'グループ指導で患者様全員に声かけができた',issue:'フロアで同期と話すとき言葉がカジュアルになってしまう',action:'職場では患者様から見られている意識で言葉遣いを整える',other:'なし',reply:''},
+  {ts:daysAgo(8).getTime(),ds:fmt(daysAgo(8)),id:'佐藤 太郎',win:'事前準備とサポートがスムーズにできた',issue:'分からないことを一人で抱え込んで先輩に相談できなかった',action:'迷ったらすぐ報告・相談する。一人で抱え込まない',other:'なし',reply:''},
+  {ts:daysAgo(8).getTime(),ds:fmt(daysAgo(8)),id:'田中 花子',win:'フロア業務が自然にできるようになった',issue:'個人情報管理で注意を受けた。患者様からPC画面が見えていた',action:'予約時は患者様からPCが見えない立ち位置を確認する',other:'なし',reply:''},
+  {ts:daysAgo(5).getTime(),ds:fmt(daysAgo(5)),id:'山田 次郎',win:'急遽任された患者対応をスムーズに行えた',issue:'病態説明が一方通行になった。患者様が理解しているか確認できなかった',action:'説明後に患者様の理解を確認する双方向の説明を意識する',other:'',reply:''},
+  {ts:daysAgo(5).getTime(),ds:fmt(daysAgo(5)),id:'鈴木 美咲',win:'かみ砕いた表現で説明できた',issue:'声が小さいと指摘された。緊張すると声が出なくなる',action:'緊張時こそ意識して声量を上げる。患者様への安心感につながる',other:'なし',reply:''},
+  {ts:daysAgo(3).getTime(),ds:fmt(daysAgo(3)),id:'中村 健',win:'時間を管理しながらグループを進められた',issue:'自分の失敗に矢印が向きすぎて患者様への対応が遅れた',action:'自分の不安より患者様のために何が必要かを考えて動く',other:'',reply:''},
+  {ts:daysAgo(1,21).getTime(),ds:fmt(daysAgo(1)),id:'田中 花子',win:'問診で患者様の生活背景まで聞き出せた。HOPEを捉えられた',issue:'評価の意図をまだ言語化できない。なぜその評価をするか説明できない',action:'評価前に目的を言語化してから実施する',other:'なし',reply:''},
+  {ts:daysAgo(1,22).getTime(),ds:fmt(daysAgo(1)),id:'佐藤 太郎',win:'リスク管理を意識して患者様の安全に配慮できた',issue:'アセスメントと治療のつながりがまだ弱い',action:'先輩に自分のアセスメントを確認してもらいながら進める',other:'なし',reply:''},
+  {ts:daysAgo(0,7).getTime(),ds:fmt(daysAgo(1)),id:'鈴木 美咲',win:'患者様自身に考えさせる工夫ができた（翌朝提出）',issue:'触診が甘く収縮が確認できているか自信がない',action:'触診の方法を先輩に確認して練習する',other:'なし',reply:''},
+];
+
+// ── 育成テーマ評価軸（1ヶ月研修より） ────────────────
+const AXES=[
+  {key:'A', name:'問診の質',       keywords:['問診','なぜ聞く','背景','HOPE','ストーリー','生活背景','主訴'],
+   okHint:'患者様の背景・HOPEを意識した問診ができている',
+   ngHint:'何を聞くかは分かるが、なぜ聞くのか・評価につなげる視点が弱い'},
+  {key:'B', name:'評価・アセスメント\n・治療のつながり', keywords:['評価','アセスメント','治療','つながり','意図','目的','SOAP','なぜその評価'],
+   okHint:'評価の意図を理解しアセスメントに結びつけている',
+   ngHint:'評価は実施できるが、アセスメント・治療方針へのつながりが弱い'},
+  {key:'C', name:'リスク管理',     keywords:['リスク','転倒','安全','確認','骨折','禁忌','既往'],
+   okHint:'全場面でリスクを意識した行動ができている',
+   ngHint:'知識としては意識し始めているが、全場面での自動化にはまだ時間がかかる'},
+  {key:'D', name:'報連相・確認行動', keywords:['相談','報告','確認','一人','抱え込','先輩に聞','連絡'],
+   okHint:'迷った時に速やかに相談・確認できている',
+   ngHint:'一人で抱え込んで相談が遅れる場面がある'},
+  {key:'E', name:'接遇・言葉遣い\n・振る舞い',keywords:['接遇','言葉遣い','声','挨拶','表情','カジュアル','患者様から見'],
+   okHint:'患者様への接遇・言葉遣いが安定してきている',
+   ngHint:'慣れてきた場面や忙しい時に接遇が崩れる傾向がある'},
+  {key:'F', name:'自己認識・FB耐性', keywords:['落ち込','指摘','フィードバック','自信','できない','全部','現在地'],
+   okHint:'フィードバックを行動修正の情報として受け取れている',
+   ngHint:'指摘を受けた時に落ち込みや自己否定に入りやすい傾向がある'},
+  {key:'G', name:'患者視点への転換', keywords:['患者様のために','患者様から見','自分の不安','矢印','プロ'],
+   okHint:'自分ではなく患者様のために何が必要かを考えて動けている',
+   ngHint:'自分への矢印が向きやすく、患者様視点への転換にまだ時間がかかる'},
+];
+
+// ── ユーティリティ ────────────────────────────────
+function fmt2(d){return d.getFullYear()+'/'+(d.getMonth()+1).toString().padStart(2,'0')+'/'+d.getDate().toString().padStart(2,'0');}
+function getFilterRange(p){
+  const now=new Date(), dow=now.getDay();
+  const sot=new Date(now); sot.setHours(0,0,0,0);
+  if(p==='yesterday'){
+    const from=new Date(sot); from.setDate(from.getDate()-1);
+    if(dow===1) from.setDate(from.getDate()-2);
+    from.setHours(0,0,0,0);
+    return{from:from.getTime(),to:Date.now(),label:fmt2(from)+'〜本日12時'};
+  }
+  if(p==='3days'){const f=new Date(sot);f.setDate(f.getDate()-2);return{from:f.getTime(),to:Date.now(),label:'直近3日間'};}
+  if(p==='week'){const f=new Date(sot);f.setDate(f.getDate()-6);return{from:f.getTime(),to:Date.now(),label:'直近7日間'};}
+  if(p==='month'){const f=new Date(sot);f.setDate(f.getDate()-29);return{from:f.getTime(),to:Date.now(),label:'直近30日間'};}
+  return{from:0,to:Date.now(),label:'全期間'};
+}
+function filterP(data,p){
+  if(p==='all')return data;
+  const{from,to}=getFilterRange(p);
+  return data.filter(r=>r.ts>=from&&r.ts<=to);
+}
+function getIDs(){return[...new Set(D.map(r=>r.id))].sort();}
+function calcBizDays(fromTs){
+  let biz=0;const tmp=new Date(fromTs);const now=Date.now();
+  while(tmp.getTime()<now-3600000){tmp.setDate(tmp.getDate()+1);const d=tmp.getDay();if(d!==0&&d!==6)biz++;}
+  return biz;
+}
+function sw(t,btn){
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.sec').forEach(s=>s.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('sec-'+t).classList.add('active');
+}
+function wk(ts){
+  const d=new Date(ts),day=d.getDay();
+  d.setDate(d.getDate()-day+(day===0?-6:1));
+  return(d.getMonth()+1)+'/'+d.getDate()+'週';
+}
+
+// ── 全体把握 ──────────────────────────────────────
+function renderDash(){
+  const p=document.getElementById('psel').value;
+  const range=p==='all'?{label:'全期間'}:getFilterRange(p);
+  document.getElementById('period-label').textContent=range.label||'';
+  const data=filterP(D,p);
+  const ids=getIDs();
+
+  // 提出状況
+  document.getElementById('submit-status').innerHTML=ids.map(id=>{
+    const recs=D.filter(r=>r.id===id);
+    if(!recs.length)return`<div class="alert-card danger"><div class="alert-name">${id}</div><div class="alert-sub">記録なし</div></div>`;
+    const last=recs[recs.length-1];
+    const biz=calcBizDays(last.ts);
+    let cls,sub;
+    if(biz<=1){cls='ok';sub='提出OK ✓';}
+    else if(biz===2){cls='warn';sub='2営業日未提出 ⚠';}
+    else{cls='danger';sub=`${biz}営業日未提出 🚨`;}
+    return`<div class="alert-card ${cls}"><div class="alert-name">${id}</div><div class="alert-sub">最終: ${last.ds}</div><div class="alert-sub" style="font-weight:600;margin-top:3px">${sub}</div></div>`;
+  }).join('');
+
+  // 個人別課題
+  document.getElementById('issues-by-person').innerHTML=ids.map(id=>{
+    const issues=data.filter(r=>r.id===id&&r.issue);
+    if(!issues.length)return`<div class="person-issue-block"><div class="person-issue-head"><span>${id}</span><span style="font-size:10px;color:#bbb">期間内の課題記録なし</span></div></div>`;
+    return`<div class="person-issue-block">
+      <div class="person-issue-head" onclick="toggleIssue(this)">
+        <span>${id}</span>
+        <span><span class="badge bl">${issues.length}件</span>&nbsp;<span style="font-size:11px;color:#aaa">▼</span></span>
+      </div>
+      <div class="person-issue-body">
+        ${issues.slice().reverse().map(r=>`<div class="ir"><div class="im">${r.ds}</div>
+          <div style="margin-bottom:2px">⚠ ${r.issue}</div>
+          ${r.action?`<div style="font-size:11px;color:#aaa">→ 明日：${r.action}</div>`:''}</div>`).join('')}
+      </div></div>`;
+  }).join('');
+
+  // Q4
+  const q4=D.filter(r=>r.other&&r.other!=='なし'&&r.other!=='').slice().reverse();
+  document.getElementById('q4list').innerHTML=q4.length?q4.map(r=>`
+    <div class="q4-item">
+      <div class="im">${r.ds}　<strong>${r.id}</strong>　${r.reply?'<span class="badge">返信済 ✓</span>':'<span class="badge h">未返信</span>'}</div>
+      <div>${r.other}</div>
+      ${r.reply?`<div class="reply-box">↳ ${r.reply}</div>`:''}
+    </div>`).join(''):'<p style="font-size:12px;color:#bbb">相談・要望なし</p>';
+}
+
+function toggleIssue(head){
+  const body=head.nextElementSibling;
+  if(!body)return;
+  body.classList.toggle('open');
+  const arr=head.querySelector('span:last-child span:last-child');
+  if(arr)arr.textContent=body.classList.contains('open')?'▲':'▼';
+}
+
+// ── 個人詳細 ──────────────────────────────────────
+function initUI(){
+  const ids=getIDs();
+  document.getElementById('mbtns').innerHTML=ids.map((id,i)=>
+    `<button class="mb${i===0?' act':''}" onclick="selMember('${id}',this)">${id}</button>`).join('');
+  document.getElementById('fb-m').innerHTML=ids.map(id=>`<option value="${id}">${id}</option>`).join('');
+  renderDetail(ids[0]);
+}
+function selMember(id,btn){
+  document.querySelectorAll('.mb').forEach(b=>b.classList.remove('act'));
+  btn.classList.add('act');
+  renderDetail(id);
+}
+function renderDetail(id){
+  const data=D.filter(r=>r.id===id);
+  const ic=data.filter(r=>r.issue).length;
+  const last=data.length?data[data.length-1]:null;
+  const biz=last?calcBizDays(last.ts):99;
+  const sColor=biz<=1?'#0F6E56':biz===2?'#854F0B':'#993C1D';
+  const sTxt=biz<=1?'提出OK ✓':biz===2?'2営業日未提出 ⚠':`${biz}営業日未提出 🚨`;
+  const kws=['問診','申し送り','カルテ','声','時間','フロア','評価','知識','リスク','ロコモ','予約','アセスメント','説明','動作指導','病態'];
+  const kc=kws.map(k=>({k,n:data.filter(r=>r.issue.includes(k)).length})).filter(x=>x.n>0).sort((a,b)=>b.n-a.n).slice(0,6);
+  const weeks=[...new Set(data.map(r=>wk(r.ts)))].sort();
+  let html=`<div class="g2" style="margin-bottom:12px">
+    <div style="background:#f5f5f3;border-radius:8px;padding:12px;text-align:center"><div style="font-size:11px;color:#888;margin-bottom:3px">記録日数</div><div style="font-size:22px;font-weight:600">${data.length}</div><div style="font-size:11px;color:#aaa">最終: ${last?last.ds:'—'}</div></div>
+    <div style="background:#f5f5f3;border-radius:8px;padding:12px;text-align:center"><div style="font-size:11px;color:#888;margin-bottom:3px">提出状況</div><div style="font-size:14px;font-weight:600;color:${sColor}">${sTxt}</div></div>
+  </div>`;
+  if(kc.length){html+=`<div class="card"><p class="ct">繰り返し出ている課題テーマ</p><div class="kw-wrap">${kc.map(x=>`<span class="kw">${x.k} <strong>${x.n}回</strong></span>`).join('')}</div></div>`;}
+  html+=`<div class="card"><p class="ct">週ごとの振り返り</p>`;
+  weeks.forEach(w=>{
+    const wd=data.filter(r=>wk(r.ts)===w);
+    html+=`<div class="wh">${w}（${wd.length}件）</div>`;
+    wd.forEach(r=>{html+=`<div class="ir"><div class="im">${r.ds}</div>
+      <div style="margin-bottom:2px">✅ ${r.win||'—'}</div>
+      <div style="color:#888">⚠ ${r.issue||'記載なし'}</div>
+      ${r.action?`<div style="font-size:11px;color:#aaa;margin-top:2px">→ 明日：${r.action}</div>`:''}</div>`;});
+  });
+  html+=`</div>`;
+  document.getElementById('detail-content').innerHTML=html;
+}
+
+// ── FBシート生成（研修テーマ連動） ───────────────────
+function genFB(){
+  const id=document.getElementById('fb-m').value;
+  const pval=document.getElementById('fb-p').value;
+  const data=filterP(D.filter(r=>r.id===id),pval);
+  if(!data.length){
+    document.getElementById('fb-result').innerHTML='<p style="color:#aaa;font-size:12px;margin-top:8px">該当データがありません</p>';
+    return;
+  }
+
+  const allText=data.map(r=>(r.win+' '+r.issue+' '+r.action).toLowerCase()).join(' ');
+  const issueText=data.map(r=>r.issue).join(' ');
+  const winText=data.map(r=>r.win).join(' ');
+
+  // ① 成長まとめ（Q1から代表的エピソード抽出）
+  const wins=data.filter(r=>r.win).slice(-5);
+
+  // ② 育成テーマ別 現在地評価
+  const axisRows=AXES.map(ax=>{
+    const okHits=data.filter(r=>ax.keywords.some(k=>r.win.includes(k))).length;
+    const ngHits=data.filter(r=>ax.keywords.some(k=>r.issue.includes(k))).length;
+    let status,evidence,cls;
+    if(okHits>0&&ngHits===0){
+      status='できている';cls='ok';
+      const ex=data.filter(r=>ax.keywords.some(k=>r.win.includes(k))).slice(-1)[0];
+      evidence=ex?`例）${ex.win}`:ax.okHint;
+    } else if(ngHits>0){
+      status=okHits>0?'成長中・課題あり':'課題あり';
+      cls=okHits>0?'m':'h';
+      const ex=data.filter(r=>ax.keywords.some(k=>r.issue.includes(k))).slice(-1)[0];
+      evidence=ex?`例）${ex.issue}`:ax.ngHint;
+    } else {
+      status='記録から判断困難';cls='gy';
+      evidence='この期間の日報に関連する記述が少ない';
+    }
+    return{ax,status,evidence,cls,okHits,ngHits};
+  });
+
+  // ③ 繰り返し課題
+  const repeatIssues=AXES.filter(ax=>data.filter(r=>ax.keywords.some(k=>r.issue.includes(k))).length>=2)
+    .map(ax=>ax.name.replace('\n',''));
+
+  // ④ 来月アクション（課題が多い軸から優先順位付きで抽出）
+  const topAxes=axisRows.filter(r=>r.ngHits>0).sort((a,b)=>b.ngHits-a.ngHits).slice(0,3);
+  const actions=data.filter(r=>r.action).slice(-3);
+
+  // HTML生成
+  let html=`<div class="fb-box">`;
+
+  // ヘッダー
+  html+=`<div style="margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #e8e8e5">
+    <div style="font-size:15px;font-weight:700">${id} さん　月次フィードバックシート</div>
+    <div style="font-size:11px;color:#888;margin-top:3px">対象期間：${data[0].ds} 〜 ${data[data.length-1].ds}　記録日数：${data.length}日</div>
+  </div>`;
+
+  // ① 成長まとめ
+  html+=`<div class="fb-section">
+    <div class="fb-section-title">① この期間の成長まとめ</div>
+    ${wins.map(r=>`<div class="ir"><div class="im">${r.ds}</div><div>✅ ${r.win}</div></div>`).join('')}
+  </div>`;
+
+  // ② テーマ別現在地
+  html+=`<div class="fb-section">
+    <div class="fb-section-title">② 育成テーマ別　現在地</div>`;
+  axisRows.forEach(({ax,status,evidence,cls})=>{
+    html+=`<div class="fb-axis-row">
+      <div class="fb-axis-name">${ax.key}. ${ax.name.replace('\n','')}</div>
+      <div class="fb-axis-content">
+        <span class="badge ${cls}" style="margin-bottom:4px;display:inline-block">${status}</span><br>
+        <span class="${cls==='ok'?'fb-axis-ok':cls==='gy'?'fb-axis-none':'fb-axis-ng'}">${evidence}</span>
+      </div>
+    </div>`;
+  });
+  html+=`</div>`;
+
+  // ③ 繰り返し課題
+  html+=`<div class="fb-section">
+    <div class="fb-section-title">③ 繰り返し出ている課題と傾向</div>`;
+  if(repeatIssues.length){
+    repeatIssues.forEach(name=>{
+      const ax=AXES.find(a=>a.name.replace('\n','')===name);
+      if(!ax)return;
+      const exs=data.filter(r=>ax.keywords.some(k=>r.issue.includes(k))).slice(-2);
+      html+=`<div class="ir"><div style="font-weight:600;margin-bottom:3px">「${name}」に関する課題が複数回記録されています</div>
+        ${exs.map(r=>`<div style="font-size:11px;color:#888">・${r.ds}：${r.issue}</div>`).join('')}
+      </div>`;
+    });
+  } else {
+    html+=`<div style="font-size:12px;color:#aaa;padding:8px 0">この期間に繰り返し出ている課題は確認されませんでした</div>`;
+  }
+  html+=`</div>`;
+
+  // ④ 来月アクション
+  html+=`<div class="fb-section">
+    <div class="fb-section-title">④ 来月取り組んでほしいこと（優先順位順）</div>`;
+  if(topAxes.length){
+    topAxes.forEach(({ax},i)=>{
+      const ex=data.filter(r=>ax.keywords.some(k=>r.action.includes(k))).slice(-1)[0];
+      const actionTxt=ex?ex.action:ax.ngHint;
+      html+=`<div class="fb-action-item"><div class="fb-action-num">${i+1}</div>
+        <div><strong>${ax.name.replace('\n','')}</strong> の強化<br>
+        <span style="font-size:11px;color:#888">${actionTxt}</span></div>
+      </div>`;
+    });
+  } else if(actions.length){
+    actions.forEach((r,i)=>{html+=`<div class="fb-action-item"><div class="fb-action-num">${i+1}</div><div>${r.action}</div></div>`;});
+  }
+  html+=`</div>`;
+
+  // ⑤ 一言メッセージ
+  const topIssue=topAxes[0]?topAxes[0].ax.name.replace('\n',''):'';
+  html+=`<div class="fb-section">
+    <div class="fb-section-title">⑤ 一言メッセージ</div>
+    <div class="fb-msg">${data.length}日間の記録、お疲れさまでした。${wins.length>0?`「${wins[wins.length-1].win}」など、`:''}着実に成長している姿が日報から伝わっています。${topIssue?`\n\n「${topIssue}」については継続して取り組んでいきましょう。`:''}フィードバックは人格否定ではなく、患者様のために行動を修正するための情報です。「今日より明日、自分がアップデートされていること」を意識して、引き続き一緒に成長していきましょう。</div>
+  </div>`;
+
+  html+=`</div>`;// fb-box閉じ
+
+  // コピーボタン
+  html=`<div style="display:flex;justify-content:flex-end;margin-bottom:6px">
+    <button class="btn" onclick="copyFB()" style="font-size:11px;padding:4px 12px">コピー</button>
+  </div>`+html;
+
+  document.getElementById('fb-result').innerHTML=html;
+}
+
+function copyFB(){
+  const el=document.getElementById('fb-result');
+  if(el) navigator.clipboard.writeText(el.innerText).then(()=>alert('コピーしました'));
+}
+
+initUI();
+renderDash();
+</script>
+</body>
+</html>
